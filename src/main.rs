@@ -37,8 +37,12 @@ enum CliCommand {
     },
     /// Stop and remove all containers
     Stop {},
-    /// Remove pg and rebuild the database
-    PurgeDb {},
+    /// Remove local db folder and rebuild the database
+    PurgeDb {
+        /// local db folder defined via `volumes`, defaults to `pg/`
+        #[structopt(default_value = "pg")]
+        db_folder: String,
+    },
     /// Create migration and apply it to the db
     Migrate {
         /// Name of a specific application to migrate
@@ -163,7 +167,7 @@ fn main() {
             );
         }
 
-        CliCommand::PurgeDb {} => {
+        CliCommand::PurgeDb {db_folder} => {
             exec_command(
                 DOCKER_COMPOSE,
                 vec![
@@ -172,7 +176,7 @@ fn main() {
                     "--force",
                 ],
             );
-            exec_command("rm", vec!["-rf", "pg"]);
+            exec_command("rm", vec!["-rf", db_folder.as_str()]);
             exec_command(DOCKER_COMPOSE, vec!["up", "-d"]);
         }
 
