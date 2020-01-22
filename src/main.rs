@@ -213,7 +213,7 @@ fn main() {
         }
 
         CliCommand::PyTest { tests_path } => {
-            let mut pytest_cmd = vec!["pytest"];
+            let mut pytest_cmd = vec!["exec", opts.service.as_str(), "pytest"];
             match tests_path {
                 Some(tests) => {
                     pytest_cmd.push(tests.as_str());
