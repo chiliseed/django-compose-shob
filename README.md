@@ -15,7 +15,8 @@ By default, `ddc-shob` works with `api` docker compose service, unless another s
 If there will be an interest, I will add a separate command for full rollback. 
 7. `shob-urls` - useful if you have `django-extensions`, this will output all urls in the service.
 8. `add-app` - adds new django application in your project.
-
+9. `lint` - run different lint jobs. For a full list run with `--help`
+10. `py-test` - run pytest inside the container.
 
 # Supported operating systems
 
