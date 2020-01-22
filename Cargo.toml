@@ -1,5 +1,5 @@
 [package]
-name = "shob"
+name = "ddc-shob"
 version = "0.1.0"
 authors = ["ana <ana@altonotch.com>"]
 edition = "2018"
