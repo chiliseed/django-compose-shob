@@ -1,6 +1,8 @@
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
 use structopt::StructOpt;
+use std::path::Path;
+use std::env;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -11,6 +13,9 @@ struct Opt {
     /// Docker compose service to operate on
     #[structopt(default_value = "api")]
     service: String,
+    /// docker compose yml
+    #[structopt(default_value = "docker-compose.yml")]
+    docker_compose_file: String,
     #[structopt(subcommand)]
     cmd: CliCommand,
 }
@@ -86,6 +91,13 @@ fn exec_manage_command(service: &str, args: Vec<&str>) {
 
 fn main() {
     let opts = Opt::from_args();
+    let here = env::current_dir().expect("Error getting current dir");
+    let is_docker_yml_found = Path::new(&here).join(opts.docker_compose_file).exists();
+    let is_docker_yaml_found = Path::new(&here).join("docker-compose.yaml").exists();
+    if !is_docker_yml_found && !is_docker_yaml_found {
+        eprintln!("No docker compose file found")
+    }
+
     match opts.cmd {
         CliCommand::Start { build } => {
             if build {
