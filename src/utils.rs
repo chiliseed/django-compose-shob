@@ -11,13 +11,27 @@ pub fn exec_command(cmd: &str, args: Vec<&str>) -> bool {
         .unwrap();
 
     for line_result in BufReader::new(cli_command.stdout.as_mut().unwrap()).lines() {
-        print!("{}", line_result.unwrap());
-        print!("\r\n");
+        match line_result {
+            Ok(line) => {
+                print!("{}", line);
+                print!("\r\n");
+            }
+            Err(err) => {
+                eprintln!("{}", err);
+            }
+        }
     }
 
     for line_result in BufReader::new(cli_command.stderr.as_mut().unwrap()).lines() {
-        print!("{}", line_result.unwrap());
-        print!("\r\n");
+        match line_result {
+            Ok(line) => {
+                print!("{}", line);
+                print!("\r\n");
+            }
+            Err(err) => {
+                eprintln!("{}", err);
+            }
+        }
     }
 
     cli_command.wait().unwrap().success()
