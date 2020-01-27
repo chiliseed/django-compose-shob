@@ -3,7 +3,7 @@ use crate::utils::exec_command;
 
 /// Execute python manage.py command
 fn exec_manage_command(service: &str, args: Vec<&str>) -> bool {
-    let cmd_args = vec!["exec", "-T", service, "python", "manage.py"];
+    let cmd_args = vec!["exec", service, "python", "manage.py"];
     exec_command(DOCKER_COMPOSE, [cmd_args, args].concat())
 }
 
