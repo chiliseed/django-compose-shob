@@ -78,6 +78,8 @@ enum CliCommand {
     },
     /// Show services status
     Status {},
+    /// Purge docker cache & storage
+    PurgeDocker {},
 }
 
 #[derive(Debug, StructOpt)]
@@ -112,6 +114,10 @@ fn main() {
     }
 
     match opts.cmd {
+        CliCommand::PurgeDocker {} => {
+            utils::exec_command("docker", vec!["system", "prune"]);
+        }
+
         CliCommand::Start { build } => {
             docker_compose::start(build);
         }
