@@ -1,38 +1,18 @@
-use std::io::{BufRead, BufReader};
+use std::error::Error;
 use std::process::{Command, Stdio};
 
 /// Wrapper for executing any commands in command line
 pub fn exec_command(cmd: &str, args: Vec<&str>) -> bool {
-    let mut cli_command = Command::new(cmd)
+    let mut cli_command = match Command::new(cmd)
         .args(&args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
         .spawn()
-        .unwrap();
-
-    for line_result in BufReader::new(cli_command.stdout.as_mut().unwrap()).lines() {
-        match line_result {
-            Ok(line) => {
-                print!("{}", line);
-                print!("\r\n");
-            }
-            Err(err) => {
-                eprintln!("{}", err);
-            }
-        }
-    }
-
-    for line_result in BufReader::new(cli_command.stderr.as_mut().unwrap()).lines() {
-        match line_result {
-            Ok(line) => {
-                print!("{}", line);
-                print!("\r\n");
-            }
-            Err(err) => {
-                eprintln!("{}", err);
-            }
-        }
-    }
+    {
+        Err(err) => panic!("Error spawning: {}", err.description()),
+        Ok(process) => process,
+    };
 
     cli_command.wait().unwrap().success()
 }
