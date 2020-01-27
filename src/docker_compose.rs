@@ -16,7 +16,7 @@ pub fn stop(service: Option<&str>) -> bool {
     if let Some(service) = service {
         cmd_params.push(service);
     }
-    exec_command(DOCKER_COMPOSE, vec![])
+    exec_command(DOCKER_COMPOSE, cmd_params)
 }
 
 /// Restart all containers or just one
