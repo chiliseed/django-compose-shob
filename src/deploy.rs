@@ -93,13 +93,15 @@ pub fn execute(
 ) {
     let name = "deployment";
     let deployment_package = format!("{}.tar.gz", name);
-    let mut tar_args = vec!["-zcvf", deployment_package.as_str(), deploy_dir];
+    let mut tar_args = vec!["-zcvf", deployment_package.as_str()];
     if let Some(excludes) = &excluded_patterns {
         for p in excludes.iter() {
             tar_args.push("--exclude");
             tar_args.push(p.as_str());
         }
     }
+
+    tar_args.push(deploy_dir);
 
     if !exec_command("tar", tar_args) {
         eprintln!("Failed to gzip deploy target: {}", deploy_dir);
