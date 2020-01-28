@@ -1,3 +1,4 @@
+pub mod deploy;
 pub mod django;
 pub mod docker_compose;
 pub mod utils;
@@ -83,6 +84,22 @@ enum CliCommand {
     Status {},
     /// Purge docker cache & storage
     PurgeDocker {},
+    /// Gzips provided directory, uploads to remote server, builds docker images
+    /// and stars docker compose with `-d`
+    /// Only login with ssh key is supported at the moment
+    Deploy {
+        /// Remote server IP
+        server_ip: String,
+        /// Server user to login to
+        #[structopt(default_value = "ubuntu")]
+        server_user: String,
+        /// Path to directory which contains docker-compose.yml in its root
+        /// and has the code that you want to deploy
+        deploy_dir: String,
+        /// Path to ssh key to connect to remote server.
+        /// If not provided, will authenticated via ssh-agent
+        ssh_key: Option<String>,
+    },
 }
 
 #[derive(Debug, StructOpt)]
@@ -186,10 +203,14 @@ fn main() {
             None => {
                 django::lint(path.as_str(), opts.service.as_str());
             }
-        },
+        }
 
         CliCommand::Status {} => {
             docker_compose::status();
+        }
+        
+        CliCommand::Deploy { server_ip, server_user, deploy_dir, ssh_key } => {
+            deploy::execute(server_ip.as_str(), server_user.as_str(), ssh_key, deploy_dir.as_str());
         }
     }
 }

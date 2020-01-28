@@ -1,6 +1,6 @@
 [package]
 name = "ddc-shob"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["ana <ana@altonotch.com>"]
 edition = "2018"
 
@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 structopt = { version = "0.3.8", default-features = false}
+ssh2 = "0.7.1"
