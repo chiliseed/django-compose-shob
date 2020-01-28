@@ -69,19 +69,22 @@ fn get_session(
     }
 }
 
-fn exec_cmd_on_server(ssh_conn: &Session, cmd: &str) -> Result<(), DeployError> {
+fn exec_cmd_on_server(ssh_conn: &Session, cmd: &str) -> Result<i32, DeployError> {
+    println!("[remote]: {}", cmd);
     let mut channel = match ssh_conn.channel_session() {
         Ok(c) => c,
         Err(err) => return Err(DeployError::SessionError(err.to_string())),
     };
 
     channel.exec(cmd).unwrap();
-    let mut resp = String::new();
-    channel.read_to_string(&mut resp).unwrap();
-    println!("{}", resp);
+    let mut buffer = Vec::new();
+    loop {
+        let n = std::io::Read::by_ref(&mut channel).take(10).read_to_end(&mut buffer).unwrap();
+        if n == 0 { break; }
+        print!("{}", String::from_utf8_lossy(&buffer));
+    }
     channel.wait_close().unwrap();
-    println!("{}", channel.exit_status().unwrap());
-    Ok(())
+    Ok(channel.exit_status().unwrap())
 }
 
 pub fn execute(
@@ -93,7 +96,7 @@ pub fn execute(
 ) {
     let name = "deployment";
     let deployment_package = format!("{}.tar.gz", name);
-    let mut tar_args = vec!["-zcvf", deployment_package.as_str()];
+    let mut tar_args = vec!["-zcf", deployment_package.as_str()];
     if let Some(excludes) = &excluded_patterns {
         for p in excludes.iter() {
             tar_args.push("--exclude");
@@ -173,24 +176,12 @@ pub fn execute(
     println!("Extracting deployment package");
     exec_cmd_on_server(
         &ssh_conn,
-        format!("tar -zxvf /tmp/{}", deployment_package).as_str(),
-    )
-    .unwrap();
-
-    println!("Copying to /home/{}/web", server_user);
-    exec_cmd_on_server(
-        &ssh_conn,
         format!("mkdir -p /home/{}/web", server_user).as_str(),
     )
     .unwrap();
     exec_cmd_on_server(
         &ssh_conn,
-        format!("mv -f /tmp/{} /home/{}/web", name, server_user).as_str(),
-    )
-    .unwrap();
-    exec_cmd_on_server(
-        &ssh_conn,
-        format!("rm -rf /tmp/{}", deployment_package).as_str(),
+        format!("tar -zxvf /tmp/{} -C /home/{}/web", deployment_package, server_user).as_str(),
     )
     .unwrap();
 
@@ -207,4 +198,12 @@ pub fn execute(
         format!("cd /home/{}/web; docker-compose up -d --build", server_user).as_str(),
     )
     .unwrap();
+
+    exec_cmd_on_server(
+        &ssh_conn,
+        format!("rm -rf /tmp/{}", deployment_package).as_str(),
+    )
+    .unwrap();
+
+    exec_command("rm", vec!["-rf", deployment_package.as_str()]);
 }
