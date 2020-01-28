@@ -99,6 +99,8 @@ enum CliCommand {
         /// Path to ssh key to connect to remote server.
         /// If not provided, will authenticated via ssh-agent
         ssh_key: Option<String>,
+        #[structopt(long)]
+        excludes: Option<Vec<String>>,
     },
 }
 
@@ -203,14 +205,30 @@ fn main() {
             None => {
                 django::lint(path.as_str(), opts.service.as_str());
             }
-        }
+        },
 
         CliCommand::Status {} => {
             docker_compose::status();
         }
-        
-        CliCommand::Deploy { server_ip, server_user, deploy_dir, ssh_key } => {
-            deploy::execute(server_ip.as_str(), server_user.as_str(), ssh_key, deploy_dir.as_str());
+
+        CliCommand::Deploy {
+            server_ip,
+            server_user,
+            deploy_dir,
+            ssh_key,
+            excludes,
+        } => {
+            let mut foo: Vec<String> = Vec::new();
+            if let Some(e) = excludes {
+                foo.extend(e.iter().cloned());
+            }
+            deploy::execute(
+                server_ip.as_str(),
+                server_user.as_str(),
+                ssh_key,
+                deploy_dir.as_str(),
+                Some(foo),
+            );
         }
     }
 }
