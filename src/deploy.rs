@@ -84,13 +84,24 @@ fn exec_cmd_on_server(ssh_conn: &Session, cmd: &str) -> Result<(), DeployError> 
     Ok(())
 }
 
-pub fn execute(server_ip: &str, server_user: &str, ssh_key: Option<String>, deploy_dir: &str) {
+pub fn execute(
+    server_ip: &str,
+    server_user: &str,
+    ssh_key: Option<String>,
+    deploy_dir: &str,
+    excluded_patterns: Option<Vec<String>>,
+) {
     let name = "deployment";
     let deployment_package = format!("{}.tar.gz", name);
-    if !exec_command(
-        "tar",
-        vec!["-zcvf", deployment_package.as_str(), deploy_dir],
-    ) {
+    let mut tar_args = vec!["-zcvf", deployment_package.as_str(), deploy_dir];
+    if let Some(excludes) = &excluded_patterns {
+        for p in excludes.iter() {
+            tar_args.push("--exclude");
+            tar_args.push(p.as_str());
+        }
+    }
+
+    if !exec_command("tar", tar_args) {
         eprintln!("Failed to gzip deploy target: {}", deploy_dir);
         return;
     }
