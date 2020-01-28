@@ -49,12 +49,21 @@ pub fn migrate(
 /// Stops all containers and removes db folder.
 /// `db_folder` is the local file system location where the db is mapped to.
 /// By default assumes `./pg` directory path.
-pub fn purge_db(db_folder: String) -> bool {
+pub fn purge_db(db_folder: String, volume: Option<String>) -> bool {
     if !exec_command(DOCKER_COMPOSE, vec!["rm", "--stop", "--force"]) {
         return false;
     }
-    if !exec_command("rm", vec!["-rf", db_folder.as_str()]) {
-        return false;
+    match volume {
+        Some(volume_name) => {
+            if !exec_command("docker", vec!["volume", "rm", volume_name.as_str()]) {
+                return false;
+            }
+        }
+        None => {
+            if !exec_command("rm", vec!["-rf", db_folder.as_str()]) {
+                return false;
+            }
+        }
     }
     exec_command(DOCKER_COMPOSE, vec!["up", "-d"])
 }

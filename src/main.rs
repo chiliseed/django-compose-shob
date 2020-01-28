@@ -42,9 +42,12 @@ enum CliCommand {
     Stop {},
     /// Remove local db folder and rebuild the database
     PurgeDb {
-        /// local db folder defined via `volumes`, defaults to `pg/`
+        /// Local db folder defined via `volumes`, defaults to `pg/`
         #[structopt(default_value = "pg")]
         db_folder: String,
+        /// Docker volume name to which you mapped your db container
+        #[structopt(short, long)]
+        volume: Option<String>,
     },
     /// Create migration and apply it to the db
     Migrate {
@@ -137,8 +140,8 @@ fn main() {
             docker_compose::stop(None);
         }
 
-        CliCommand::PurgeDb { db_folder } => {
-            django::purge_db(db_folder);
+        CliCommand::PurgeDb { db_folder, volume } => {
+            django::purge_db(db_folder, volume);
         }
 
         CliCommand::Rebuild {} => {
