@@ -6,11 +6,9 @@ use std::net::TcpStream;
 use std::path::Path;
 
 use ssh2::Session;
+use uuid::Uuid;
 
 use crate::utils::exec_command;
-
-const MB: usize = 1_000_000;
-const CHUNK_SIZE: usize = 1 * MB;
 
 #[derive(Debug, PartialEq)]
 pub enum DeployError {
@@ -77,10 +75,18 @@ fn exec_cmd_on_server(ssh_conn: &Session, cmd: &str) -> Result<i32, DeployError>
     };
 
     channel.exec(cmd).unwrap();
-    let mut buffer = Vec::new();
     loop {
-        let n = std::io::Read::by_ref(&mut channel).take(10).read_to_end(&mut buffer).unwrap();
-        if n == 0 { break; }
+        let mut buffer = Vec::new();
+        let n = std::io::Read::by_ref(&mut channel)
+            .take(10)
+            .read_to_end(&mut buffer)
+            .unwrap();
+        if n == 0 {
+            let mut s = String::new();
+            channel.stderr().read_to_string(&mut s).unwrap();
+            eprintln!("{}", s);
+            break;
+        }
         print!("{}", String::from_utf8_lossy(&buffer));
     }
     channel.wait_close().unwrap();
@@ -94,9 +100,9 @@ pub fn execute(
     deploy_dir: &str,
     excluded_patterns: Option<Vec<String>>,
 ) {
-    let name = "deployment";
+    let name = format!("deployment_{}", Uuid::new_v4());
     let deployment_package = format!("{}.tar.gz", name);
-    let mut tar_args = vec!["-zcf", deployment_package.as_str()];
+    let mut tar_args = vec!["-czvf", deployment_package.as_str()];
     if let Some(excludes) = &excluded_patterns {
         for p in excludes.iter() {
             tar_args.push("--exclude");
@@ -147,13 +153,16 @@ pub fn execute(
         }
     };
 
-    let mut buffer = Vec::new();
     loop {
+        let mut buffer = Vec::new();
         let read_bytes = match std::io::Read::by_ref(&mut deployment_package_fp)
-            .take(CHUNK_SIZE as u64)
+            .take(1000)
             .read_to_end(&mut buffer)
         {
-            Ok(chunk) => chunk,
+            Ok(chunk) => {
+                println!("read chunk of : {}", chunk);
+                chunk
+            }
             Err(err) => {
                 eprintln!("Error reading chunk: {}", err);
                 return;
@@ -162,8 +171,8 @@ pub fn execute(
         if read_bytes == 0 {
             break;
         }
-        match channel.write(&mut buffer) {
-            Ok(_n) => println!("Uploaded chunk"),
+        match channel.write(&buffer) {
+            Ok(n) => println!("Uploaded chunk: {}", n),
             Err(err) => {
                 eprintln!("Failed to upload a chunk: {}", err);
                 return;
@@ -174,36 +183,80 @@ pub fn execute(
     println!("Deployment packages uploaded OK");
 
     println!("Extracting deployment package");
-    exec_cmd_on_server(
+    match exec_cmd_on_server(
         &ssh_conn,
         format!("mkdir -p /home/{}/web", server_user).as_str(),
-    )
-    .unwrap();
-    exec_cmd_on_server(
+    ) {
+        Ok(status_code) => {
+            if status_code > 0 {
+                eprintln!("Error. Exiting");
+                return;
+            }
+        }
+        Err(err) => {
+            eprintln!("Failed to setup web structure: {}", err);
+            return;
+        }
+    }
+    match exec_cmd_on_server(
         &ssh_conn,
-        format!("tar -zxvf /tmp/{} -C /home/{}/web", deployment_package, server_user).as_str(),
-    )
-    .unwrap();
+        format!(
+            "tar -xzvf /tmp/{} -C /home/{}/web",
+            deployment_package, server_user
+        )
+        .as_str(),
+    ) {
+        Ok(status_code) => {
+            if status_code > 0 {
+                eprintln!("Error. Exiting");
+                return;
+            }
+        }
+        Err(err) => {
+            eprintln!("Failed to extract deployment bundle: {}", err);
+            return;
+        }
+    }
 
     println!("Stopping existing containers");
-    exec_cmd_on_server(
+    match exec_cmd_on_server(
         &ssh_conn,
         format!("cd /home/{}/web; docker-compose rm -s -f", server_user).as_str(),
-    )
-    .unwrap();
+    ) {
+        Ok(status_code) => {
+            if status_code > 0 {
+                eprintln!("Error. Exiting");
+                return;
+            }
+        }
+        Err(err) => {
+            eprintln!("Failed to stop docker containers: {}", err);
+            return;
+        }
+    }
 
     println!("Build and start services");
-    exec_cmd_on_server(
+    match exec_cmd_on_server(
         &ssh_conn,
         format!("cd /home/{}/web; docker-compose up -d --build", server_user).as_str(),
-    )
-    .unwrap();
+    ) {
+        Ok(status_code) => {
+            if status_code > 0 {
+                eprintln!("Error. Exiting");
+                return;
+            }
+        }
+        Err(err) => {
+            eprintln!("Failed to build and start the containers: {}", err);
+            return;
+        }
+    }
 
-    exec_cmd_on_server(
-        &ssh_conn,
-        format!("rm -rf /tmp/{}", deployment_package).as_str(),
-    )
-    .unwrap();
-
-    exec_command("rm", vec!["-rf", deployment_package.as_str()]);
+    //    exec_cmd_on_server(
+    //        &ssh_conn,
+    //        format!("rm -rf /tmp/{}", deployment_package).as_str(),
+    //    )
+    //    .unwrap();
+    //
+    //    exec_command("rm", vec!["-rf", deployment_package.as_str()]);
 }
