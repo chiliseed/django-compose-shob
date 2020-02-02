@@ -252,11 +252,21 @@ pub fn execute(
         }
     }
 
-    //    exec_cmd_on_server(
-    //        &ssh_conn,
-    //        format!("rm -rf /tmp/{}", deployment_package).as_str(),
-    //    )
-    //    .unwrap();
-    //
-    //    exec_command("rm", vec!["-rf", deployment_package.as_str()]);
+    match exec_cmd_on_server(
+        &ssh_conn,
+        format!("rm -rf /tmp/{}", deployment_package).as_str(),
+    ) {
+        Ok(status_code) => {
+            if status_code > 0 {
+                eprintln!("Error. Exiting");
+                return;
+            }
+        }
+        Err(err) => {
+            eprintln!("Failed to remove deployment package from server: {}", err);
+            return;
+        }
+    }
+
+    exec_command("rm", vec!["-rf", deployment_package.as_str()]);
 }
