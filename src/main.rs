@@ -102,6 +102,15 @@ enum CliCommand {
         #[structopt(long)]
         excludes: Option<Vec<String>>,
     },
+    /// Show logs for container
+    Logs {
+        /// Number of lines to show
+        #[structopt(short = "n", default_value = "10")]
+        lines: i32,
+        /// Enable live streaming of logs
+        #[structopt(short)]
+        follow: bool,
+    },
 }
 
 #[derive(Debug, StructOpt)]
@@ -142,6 +151,7 @@ fn main() {
 
         CliCommand::Start { build } => {
             docker_compose::start(build);
+            docker_compose::logs(&opts.service, 10, false);
         }
 
         CliCommand::Migrate {
@@ -153,6 +163,7 @@ fn main() {
 
         CliCommand::Restart { all } => {
             docker_compose::restart(all, opts.service.as_str());
+            docker_compose::logs(&opts.service, 10, false);
         }
 
         CliCommand::Stop {} => {
@@ -165,6 +176,7 @@ fn main() {
 
         CliCommand::Rebuild {} => {
             docker_compose::rebuild(opts.service.as_str());
+            docker_compose::logs(&opts.service, 10, false);
         }
 
         CliCommand::ShowUrls {} => {
@@ -229,6 +241,10 @@ fn main() {
                 deploy_dir.as_str(),
                 Some(foo),
             );
+        }
+
+        CliCommand::Logs { lines, follow } => {
+            docker_compose::logs(&opts.service, lines, follow);
         }
     }
 }

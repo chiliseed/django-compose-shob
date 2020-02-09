@@ -5,6 +5,8 @@ Command line utility to simplify developers life. Short and precise cli commands
 # What's included
 
 By default, `ddc-shob` works with `api` docker compose service, unless another service name is provided.
+This means that if in your docker-compose file, you defined a service named `api`, you can call all commands
+without providing service name.
 
 1. `start` - start all docker compose services, with optional build step.
 2. `restart` - restarts all or only one container. 
@@ -17,6 +19,9 @@ If there will be an interest, I will add a separate command for full rollback.
 8. `add-app` - adds new django application in your project.
 9. `lint` - run different lint jobs. For a full list run with `--help`
 10. `py-test` - run pytest inside the container.
+11. `logs` - show logs for container.
+12. `deploy` - experimental feature, at this point. Simply call deploy from inside a directory ready to be packaged, uploaded to the server, that has docker-compose. 
+On server, docker-compose will be used to build the images and start the service in daemon mode.
 
 # Supported operating systems
 
