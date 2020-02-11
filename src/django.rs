@@ -14,8 +14,26 @@ pub fn migrate(
     service: &str,
     application: Option<String>,
     migration_number: Option<String>,
+    empty: bool,
+    migration_name: Option<String>,
 ) -> bool {
     let mut make_migration_args = vec!["makemigrations"];
+
+    if empty {
+        make_migration_args.push("--empty");
+        if let Some(mname) = &migration_name {
+            make_migration_args.push("--name");
+            make_migration_args.push(mname);
+        }
+
+        if let Some(app) = application {
+            make_migration_args.push(&app);
+            return exec_manage_command(service, make_migration_args);
+        }
+        eprintln!("Must provide application name");
+        return false;
+    }
+
     let mut migrate_args = vec!["migrate"];
 
     match application {
@@ -28,7 +46,11 @@ pub fn migrate(
                 }
 
                 None => {
-                    make_migration_args.push(app.as_str());
+                    make_migration_args.push(&app);
+                    if let Some(mname) = &migration_name {
+                        make_migration_args.push("--name");
+                        make_migration_args.push(mname);
+                    }
                     if !exec_manage_command(service, make_migration_args) {
                         return false;
                     }

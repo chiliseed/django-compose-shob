@@ -56,6 +56,12 @@ enum CliCommand {
         application: Option<String>,
         /// Specific migration to rollback to
         migration_number: Option<String>,
+        /// Create empty migration file for data migration
+        #[structopt(long)]
+        empty: bool,
+        /// Provide specific migration name. If none provided, django will generate the name for you.
+        #[structopt(short = "n", long = "name")]
+        migration_name: Option<String>,
     },
     /// Print out all service urls
     ShowUrls {},
@@ -157,8 +163,17 @@ fn main() {
         CliCommand::Migrate {
             application,
             migration_number,
+            empty,
+            migration_name,
         } => {
-            django::migrate(opts.service.as_str(), application, migration_number);
+            println!("empty is {}", empty);
+            django::migrate(
+                opts.service.as_str(),
+                application,
+                migration_number,
+                empty,
+                migration_name,
+            );
         }
 
         CliCommand::Restart { all } => {
