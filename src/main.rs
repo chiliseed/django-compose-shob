@@ -166,7 +166,6 @@ fn main() {
             empty,
             migration_name,
         } => {
-            println!("empty is {}", empty);
             django::migrate(
                 opts.service.as_str(),
                 application,
