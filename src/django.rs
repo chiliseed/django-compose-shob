@@ -169,3 +169,7 @@ pub fn lint(path: &str, service: &str) -> bool {
     }
     exec_command(DOCKER_COMPOSE, vec!["exec", service, "prospector", path])
 }
+
+pub fn shell_plus(service: &str) -> bool {
+    exec_manage_command(service, vec!["shell_plus"])
+}

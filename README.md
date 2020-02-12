@@ -15,12 +15,13 @@ without providing service name.
 5. `purge-db` - stops all docker compose services, removes db folder and starts all services again. Defaults to `pg` folder, unless another path was provided.
 6. `migrate` - runs `python manage.py migrate`. If you provide specific application and optionally migration number (for rollback), it will be passed on to migrate command. To fully revert all migrations for a specific application provide `zero` as migration number.
 If there will be an interest, I will add a separate command for full rollback. 
-7. `shob-urls` - useful if you have `django-extensions`, this will output all urls in the service.
+7. `show-urls` - useful if you have `django-extensions`, this will output all urls in the service.
 8. `add-app` - adds new django application in your project.
 9. `lint` - run different lint jobs. For a full list run with `--help`
 10. `py-test` - run pytest inside the container.
 11. `logs` - show logs for container.
-12. `deploy` - experimental feature, at this point. Simply call deploy from inside a directory ready to be packaged, uploaded to the server, that has docker-compose. 
+12. `sheel-plus` - useful if you have `django-extensions`, this will open python shell in provided container.
+13. `deploy` - experimental feature, at this point. Simply call deploy from inside a directory ready to be packaged, uploaded to the server, that has docker-compose. 
 On server, docker-compose will be used to build the images and start the service in daemon mode.
 
 # Supported operating systems

@@ -117,6 +117,8 @@ enum CliCommand {
         #[structopt(short)]
         follow: bool,
     },
+    /// Launch python shell via django-extensions shell_plus command
+    ShellPlus {},
 }
 
 #[derive(Debug, StructOpt)]
@@ -259,6 +261,10 @@ fn main() {
 
         CliCommand::Logs { lines, follow } => {
             docker_compose::logs(&opts.service, lines, follow);
+        }
+
+        CliCommand::ShellPlus {} => {
+            django::shell_plus(&opts.service);
         }
     }
 }
