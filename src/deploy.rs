@@ -160,7 +160,6 @@ pub fn execute(
             .read_to_end(&mut buffer)
         {
             Ok(chunk) => {
-                println!("read chunk of : {}", chunk);
                 chunk
             }
             Err(err) => {
@@ -172,7 +171,7 @@ pub fn execute(
             break;
         }
         match channel.write(&buffer) {
-            Ok(n) => println!("Uploaded chunk: {}", n),
+            Ok(_n) => print!("."),
             Err(err) => {
                 eprintln!("Failed to upload a chunk: {}", err);
                 return;
@@ -180,8 +179,24 @@ pub fn execute(
         };
     }
 
-    println!("Deployment packages uploaded OK");
+    println!("\r\nDeployment packages uploaded OK");
 
+    println!("Clearing web directory");
+    match exec_cmd_on_server(
+        &ssh_conn,
+        format!("rm -rf /home/{}/web", server_user).as_str(),
+    ) {
+        Ok(status_code) => {
+            if status_code > 0 {
+                eprintln!("Error. Exiting");
+                return;
+            }
+        }
+        Err(err) => {
+            eprintln!("Failed to clear web directory: {}", err);
+            return;
+        }
+    }
     println!("Extracting deployment package");
     match exec_cmd_on_server(
         &ssh_conn,
