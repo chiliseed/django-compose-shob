@@ -246,16 +246,16 @@ fn main() {
             ssh_key,
             excludes,
         } => {
-            let mut foo: Vec<String> = Vec::new();
+            let mut excluded_patterns: Vec<String> = Vec::new();
             if let Some(e) = excludes {
-                foo.extend(e.iter().cloned());
+                excluded_patterns.extend(e.iter().cloned());
             }
             deploy::execute(
                 server_ip.as_str(),
                 server_user.as_str(),
                 ssh_key,
                 deploy_dir.as_str(),
-                Some(foo),
+                Some(excluded_patterns),
             );
         }
 
