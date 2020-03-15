@@ -1,14 +1,19 @@
 use std::error::Error;
-use std::fmt;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::BufRead;
+use std::io::{BufReader, Read, Write};
 use std::net::TcpStream;
 use std::path::Path;
+use std::{fmt, fs, io};
 
+use flate2::write::GzEncoder;
+use flate2::Compression;
+use globset::{Glob, GlobSetBuilder};
 use ssh2::Session;
 use uuid::Uuid;
 
 use crate::utils::exec_command;
+use walkdir::WalkDir;
 
 #[derive(Debug, PartialEq)]
 pub enum DeployError {
@@ -16,22 +21,34 @@ pub enum DeployError {
     ConnectionError(String),
     SessionError(String),
     RemoteCmdError(String),
+    ParseError(String),
 }
 
-impl Error for DeployError {
-    fn description(&self) -> &str {
-        match *self {
-            DeployError::AuthenticationFailed(ref cause) => cause,
-            DeployError::ConnectionError(ref cause) => cause,
-            DeployError::SessionError(ref cause) => cause,
-            DeployError::RemoteCmdError(ref cause) => cause,
-        }
-    }
-}
+type DeploymentResult<T> = Result<T, DeployError>;
+
+impl Error for DeployError {}
 
 impl fmt::Display for DeployError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.description())
+        write!(f, "{}", self.to_string())
+    }
+}
+
+impl From<globset::Error> for DeployError {
+    fn from(err: globset::Error) -> DeployError {
+        DeployError::ParseError(err.to_string())
+    }
+}
+
+impl From<ssh2::Error> for DeployError {
+    fn from(err: ssh2::Error) -> DeployError {
+        DeployError::ConnectionError(err.to_string())
+    }
+}
+
+impl From<io::Error> for DeployError {
+    fn from(err: io::Error) -> DeployError {
+        DeployError::ConnectionError(err.to_string())
     }
 }
 
@@ -39,20 +56,12 @@ fn get_session(
     server_ip: &str,
     server_user: &str,
     ssh_key: Option<String>,
-) -> Result<Session, DeployError> {
-    let tcp = match TcpStream::connect(format!("{}:22", server_ip)) {
-        Ok(stream) => stream,
-        Err(err) => return Err(DeployError::ConnectionError(err.to_string())),
-    };
-    let mut sess = match Session::new() {
-        Ok(s) => s,
-        Err(err) => return Err(DeployError::SessionError(err.to_string())),
-    };
+) -> DeploymentResult<Session> {
+    let tcp = TcpStream::connect(format!("{}:22", server_ip))?;
+    let mut sess = Session::new()?;
+
     sess.set_tcp_stream(tcp);
-    match sess.handshake() {
-        Ok(()) => println!("Handshake success"),
-        Err(err) => return Err(DeployError::SessionError(err.to_string())),
-    }
+    sess.handshake()?;
 
     match ssh_key {
         Some(key) => match sess.userauth_pubkey_file(server_user, None, &Path::new(&key), None) {
@@ -67,12 +76,109 @@ fn get_session(
     }
 }
 
-fn exec_cmd_on_server(ssh_conn: &Session, cmd: &str) -> Result<i32, DeployError> {
+const BUILD_LOCATION: &str = "_build";
+
+fn create_build_tarball() -> Result<String, DeployError> {
+    let uuid = Uuid::new_v4();
+    let build_tar_name = format!("build_{}.tar.gz", uuid.to_simple());
+    let build_tar = File::create(build_tar_name.clone())?;
+    let encoder = GzEncoder::new(build_tar, Compression::default());
+    let mut tar = tar::Builder::new(encoder);
+    tar.append_dir_all("build", BUILD_LOCATION)?;
+    Ok(build_tar_name)
+}
+
+fn upload_build_tarball_to_server(ssh_conn: &Session, build_tarball: &str) -> DeploymentResult<()> {
+    println!("Uploading {} to build worker", build_tarball);
+    let mut deployment_package_fp = File::open(build_tarball)?;
+    let pck_meta = deployment_package_fp.metadata()?;
+    let mut channel = ssh_conn.scp_send(
+        Path::new(&format!("/tmp/{}", build_tarball)),
+        0o644,
+        pck_meta.len(),
+        None,
+    )?;
+
+    loop {
+        let mut buffer = Vec::new();
+        let read_bytes = std::io::Read::by_ref(&mut deployment_package_fp)
+            .take(1000)
+            .read_to_end(&mut buffer)?;
+        if read_bytes == 0 {
+            break;
+        }
+        channel.write_all(&buffer)?;
+    }
+
+    Ok(())
+}
+
+fn setup_deployment_dir() -> DeploymentResult<()> {
+    if Path::new(BUILD_LOCATION).exists() {
+        fs::remove_dir_all(BUILD_LOCATION)?;
+    }
+
+    fs::create_dir(BUILD_LOCATION)?;
+
+    let gitignore = File::open(".gitignore")?;
+    let mut ignores: Vec<String> = BufReader::new(gitignore)
+        .lines()
+        .filter_map(|line| line.ok())
+        .filter(|line| !line.trim().is_empty())
+        .collect();
+
+    ignores.push("*.pem".to_string());
+    ignores.push(".git/*".to_string());
+    ignores.push("_build/*".to_string());
+    ignores.push("*.tar.gz".to_string());
+
+    let mut path_checker = GlobSetBuilder::new();
+    ignores.iter().for_each(|ignore_pattern| {
+        let mut clean_ignore = ignore_pattern.trim().to_string();
+        if clean_ignore.starts_with("/") {
+            debug!("Adding .{} to ignore", clean_ignore);
+            clean_ignore = ".".to_string() + &clean_ignore;
+        } else if !clean_ignore.starts_with("./") {
+            debug!("Adding ./{} to ignore", clean_ignore);
+            clean_ignore = "./".to_string() + &clean_ignore;
+        }
+        if Path::new(&clean_ignore).is_dir() {
+            debug!("Adding * to {} ignore", clean_ignore);
+            clean_ignore = clean_ignore + "/*";
+        }
+        debug!("Ignoring path: {}", clean_ignore);
+        path_checker.add(Glob::new(&clean_ignore).unwrap());
+    });
+
+    let set_path_checker = path_checker.build()?;
+
+    for entry in WalkDir::new(".")
+        .follow_links(true)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
+        let path = entry.path();
+        if path.is_dir() {
+            continue;
+        }
+
+        let matched_patterns_idx = set_path_checker.matches(path);
+        if !matched_patterns_idx.is_empty() {
+            continue;
+        }
+
+        let move_to = format!("{}/{}", &BUILD_LOCATION, path.to_str().unwrap());
+        let build_path = Path::new(&move_to);
+
+        fs::create_dir_all(build_path.parent().unwrap())?;
+        fs::copy(path, build_path)?;
+    }
+    Ok(())
+}
+
+fn exec_cmd_on_server(ssh_conn: &Session, cmd: &str) -> DeploymentResult<i32> {
     println!("[remote]: {}", cmd);
-    let mut channel = match ssh_conn.channel_session() {
-        Ok(c) => c,
-        Err(err) => return Err(DeployError::SessionError(err.to_string())),
-    };
+    let mut channel = ssh_conn.channel_session()?;
 
     channel.exec(cmd).unwrap();
     loop {
@@ -93,29 +199,27 @@ fn exec_cmd_on_server(ssh_conn: &Session, cmd: &str) -> Result<i32, DeployError>
     Ok(channel.exit_status().unwrap())
 }
 
-pub fn execute(
-    server_ip: &str,
-    server_user: &str,
-    ssh_key: Option<String>,
-    deploy_dir: &str,
-    excluded_patterns: Option<Vec<String>>,
-) {
-    let name = format!("deployment_{}", Uuid::new_v4());
-    let deployment_package = format!("{}.tar.gz", name);
-    let mut tar_args = vec!["-czvf", deployment_package.as_str()];
-    if let Some(excludes) = &excluded_patterns {
-        for p in excludes.iter() {
-            tar_args.push("--exclude");
-            tar_args.push(p.as_str());
+pub fn execute(server_ip: &str, server_user: &str, ssh_key: Option<String>) {
+    // prepare build directory
+    match setup_deployment_dir() {
+        Ok(()) => debug!("deployment dir is ready"),
+        Err(err) => {
+            eprintln!("Error: {}", err);
+            return;
         }
     }
 
-    tar_args.push(deploy_dir);
-
-    if !exec_command("tar", tar_args) {
-        eprintln!("Failed to gzip deploy target: {}", deploy_dir);
-        return;
-    }
+    // create tar.gz build directory
+    let build_tarball = match create_build_tarball() {
+        Ok(tarball) => {
+            println!("Build tarballed ok");
+            tarball
+        }
+        Err(err) => {
+            eprintln!("Error: {}", err);
+            return;
+        }
+    };
 
     let ssh_conn = match get_session(server_ip, server_user, ssh_key) {
         Ok(s) => s,
@@ -125,60 +229,14 @@ pub fn execute(
         }
     };
 
-    let mut deployment_package_fp = match File::open(deployment_package.clone()) {
-        Ok(fp) => fp,
+    // upload tar.gz to worker server
+    match upload_build_tarball_to_server(&ssh_conn, &build_tarball) {
+        Ok(()) => println!("Build uploaded to server"),
         Err(err) => {
-            eprintln!("Failed to open deployment package: {}", err);
+            eprintln!("Error: {}", err);
             return;
         }
     };
-    let pck_meta = match deployment_package_fp.metadata() {
-        Ok(meta_data) => meta_data,
-        Err(err) => {
-            eprintln!("Failed to get metadata: {}", err);
-            return;
-        }
-    };
-
-    let mut channel = match ssh_conn.scp_send(
-        Path::new(&format!("/tmp/{}", deployment_package)),
-        0o644,
-        pck_meta.len(),
-        None,
-    ) {
-        Ok(c) => c,
-        Err(err) => {
-            eprintln!("Failed to open a channel: {}", err);
-            return;
-        }
-    };
-
-    loop {
-        let mut buffer = Vec::new();
-        let read_bytes = match std::io::Read::by_ref(&mut deployment_package_fp)
-            .take(1000)
-            .read_to_end(&mut buffer)
-        {
-            Ok(chunk) => {
-                chunk
-            }
-            Err(err) => {
-                eprintln!("Error reading chunk: {}", err);
-                return;
-            }
-        };
-        if read_bytes == 0 {
-            break;
-        }
-        match channel.write(&buffer) {
-            Ok(_n) => print!("."),
-            Err(err) => {
-                eprintln!("Failed to upload a chunk: {}", err);
-                return;
-            }
-        };
-    }
-
     println!("\r\nDeployment packages uploaded OK");
 
     println!("Clearing web directory");
@@ -217,7 +275,7 @@ pub fn execute(
         &ssh_conn,
         format!(
             "tar -xzvf /tmp/{} -C /home/{}/web",
-            deployment_package, server_user
+            build_tarball, server_user
         )
         .as_str(),
     ) {
@@ -267,10 +325,7 @@ pub fn execute(
         }
     }
 
-    match exec_cmd_on_server(
-        &ssh_conn,
-        format!("rm -rf /tmp/{}", deployment_package).as_str(),
-    ) {
+    match exec_cmd_on_server(&ssh_conn, format!("rm -rf /tmp/{}", build_tarball).as_str()) {
         Ok(status_code) => {
             if status_code > 0 {
                 eprintln!("Error. Exiting");
@@ -283,5 +338,5 @@ pub fn execute(
         }
     }
 
-    exec_command("rm", vec!["-rf", deployment_package.as_str()]);
+    exec_command("rm", vec!["-rf", build_tarball.as_str()]);
 }

@@ -7,6 +7,8 @@ use std::env;
 use std::path::Path;
 
 use structopt::StructOpt;
+#[macro_use]
+extern crate log;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -99,14 +101,9 @@ enum CliCommand {
         /// Server user to login to
         #[structopt(default_value = "ubuntu")]
         server_user: String,
-        /// Path to directory which contains docker-compose.yml in its root
-        /// and has the code that you want to deploy
-        deploy_dir: String,
         /// Path to ssh key to connect to remote server.
         /// If not provided, will authenticated via ssh-agent
         ssh_key: Option<String>,
-        #[structopt(long)]
-        excludes: Option<Vec<String>>,
     },
     /// Show logs for container
     Logs {
@@ -144,6 +141,9 @@ enum LintCommands {
 }
 
 fn main() {
+    pretty_env_logger::try_init_custom_env("DDC_SHOB_LOG")
+        .expect("Cannot initialize the logger that was already initialized.");
+
     let opts = Opt::from_args();
     let here = env::current_dir().expect("Error getting current dir");
     let is_docker_yml_found = Path::new(&here).join(opts.docker_compose_file).exists();
@@ -242,21 +242,9 @@ fn main() {
         CliCommand::Deploy {
             server_ip,
             server_user,
-            deploy_dir,
             ssh_key,
-            excludes,
         } => {
-            let mut excluded_patterns: Vec<String> = Vec::new();
-            if let Some(e) = excludes {
-                excluded_patterns.extend(e.iter().cloned());
-            }
-            deploy::execute(
-                server_ip.as_str(),
-                server_user.as_str(),
-                ssh_key,
-                deploy_dir.as_str(),
-                Some(excluded_patterns),
-            );
+            deploy::execute(server_ip.as_str(), server_user.as_str(), ssh_key);
         }
 
         CliCommand::Logs { lines, follow } => {

@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::process::{Command, Stdio};
 
 /// Wrapper for executing any commands in command line
@@ -11,7 +10,7 @@ pub fn exec_command(cmd: &str, args: Vec<&str>) -> bool {
         .stderr(Stdio::inherit())
         .spawn()
     {
-        Err(err) => panic!("Error spawning: {}", err.description()),
+        Err(err) => panic!("Error spawning: {}", err.to_string()),
         Ok(process) => process,
     };
 
