@@ -101,8 +101,13 @@ pub fn add_app(app_name: &str, service: &str) -> bool {
 }
 
 /// Execute pytest in container
-pub fn pytest(path: Option<String>, service: &str) -> bool {
+pub fn pytest(path: Option<String>, simple: bool, service: &str) -> bool {
     let mut pytest_cmd = vec!["exec", service, "pytest"];
+    if simple {
+        pytest_cmd.push("-rfEs");
+        pytest_cmd.push("-p");
+        pytest_cmd.push("no:warnings");
+    }
     match path {
         Some(tests) => {
             pytest_cmd.push(tests.as_str());

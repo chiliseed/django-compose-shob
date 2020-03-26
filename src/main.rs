@@ -76,6 +76,9 @@ enum CliCommand {
     PyTest {
         /// Optional path for specific tests to run
         tests_path: Option<String>,
+        /// Run py-test without warnings with report showing only number of failed/skipped/errored tests
+        #[structopt(short, long)]
+        simple: bool,
     },
     /// Run linters in container
     Lint {
@@ -203,8 +206,8 @@ fn main() {
             django::add_app(name.as_str(), opts.service.as_str());
         }
 
-        CliCommand::PyTest { tests_path } => {
-            django::pytest(tests_path, opts.service.as_str());
+        CliCommand::PyTest { tests_path, simple } => {
+            django::pytest(tests_path, simple, opts.service.as_str());
         }
 
         CliCommand::Lint { cmd, path } => match cmd {
