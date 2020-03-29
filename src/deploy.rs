@@ -15,13 +15,14 @@ use uuid::Uuid;
 use crate::utils::exec_command;
 use walkdir::WalkDir;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum DeployError {
     AuthenticationFailed(String),
-    ConnectionError(String),
+    ConnectionError(ssh2::Error),
     SessionError(String),
     RemoteCmdError(String),
-    ParseError(String),
+    ParseError(globset::Error),
+    IOError(io::Error),
 }
 
 type DeploymentResult<T> = Result<T, DeployError>;
@@ -32,29 +33,30 @@ impl fmt::Display for DeployError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             DeployError::AuthenticationFailed(ref cause) => write!(f, "{}", cause),
-            DeployError::ConnectionError(ref cause) => write!(f, "{}", cause),
+            DeployError::ConnectionError(ref err) => err.fmt(f),
             DeployError::SessionError(ref cause) => write!(f, "{}", cause),
             DeployError::RemoteCmdError(ref cause) => write!(f, "{}", cause),
-            DeployError::ParseError(ref cause) => write!(f, "{}", cause),
+            DeployError::ParseError(ref err) => err.fmt(f),
+            DeployError::IOError(ref err) => err.fmt(f),
         }
     }
 }
 
 impl From<globset::Error> for DeployError {
     fn from(err: globset::Error) -> DeployError {
-        DeployError::ParseError(err.to_string())
+        DeployError::ParseError(err)
     }
 }
 
 impl From<ssh2::Error> for DeployError {
     fn from(err: ssh2::Error) -> DeployError {
-        DeployError::ConnectionError(err.to_string())
+        DeployError::ConnectionError(err)
     }
 }
 
 impl From<io::Error> for DeployError {
     fn from(err: io::Error) -> DeployError {
-        DeployError::ConnectionError(err.to_string())
+        DeployError::IOError(err)
     }
 }
 
@@ -70,9 +72,12 @@ fn get_session(
     sess.handshake()?;
 
     match ssh_key {
-        Some(key) => match sess.userauth_pubkey_file(server_user, None, &Path::new(&key), None) {
-            Ok(()) => Ok(sess),
-            Err(err) => Err(DeployError::AuthenticationFailed(err.to_string())),
+        Some(key) => {
+            println!("Connecting via key: {}", key);
+            match sess.userauth_pubkey_file(server_user, None, &Path::new(&key), None) {
+                Ok(()) => Ok(sess),
+                Err(err) => Err(DeployError::AuthenticationFailed(err.to_string())),
+            }
         },
 
         None => match sess.userauth_agent(server_user) {
@@ -83,6 +88,7 @@ fn get_session(
 }
 
 const BUILD_LOCATION: &str = "_build";
+const BUILD_ARTIFACT: &str = "build";
 
 fn create_build_tarball() -> Result<String, DeployError> {
     let uuid = Uuid::new_v4();
@@ -90,7 +96,7 @@ fn create_build_tarball() -> Result<String, DeployError> {
     let build_tar = File::create(build_tar_name.clone())?;
     let encoder = GzEncoder::new(build_tar, Compression::default());
     let mut tar = tar::Builder::new(encoder);
-    tar.append_dir_all("build", BUILD_LOCATION)?;
+    tar.append_dir_all(BUILD_ARTIFACT, BUILD_LOCATION)?;
     Ok(build_tar_name)
 }
 
@@ -121,22 +127,33 @@ fn upload_build_tarball_to_server(ssh_conn: &Session, build_tarball: &str) -> De
 
 fn setup_deployment_dir() -> DeploymentResult<()> {
     if Path::new(BUILD_LOCATION).exists() {
+        println!("Removing previous artifact");
         fs::remove_dir_all(BUILD_LOCATION)?;
     }
 
+    println!("Setting up deployment artifact");
     fs::create_dir(BUILD_LOCATION)?;
 
-    let gitignore = File::open(".gitignore")?;
-    let mut ignores: Vec<String> = BufReader::new(gitignore)
-        .lines()
-        .filter_map(|line| line.ok())
-        .filter(|line| !line.trim().is_empty())
-        .collect();
+    let mut ignores: Vec<String> = vec![
+        "*.pem".to_string(),
+        ".git/*".to_string(),
+        "_build/*".to_string(),
+        "*.tar.gz".to_string(),
+    ];
 
-    ignores.push("*.pem".to_string());
-    ignores.push(".git/*".to_string());
-    ignores.push("_build/*".to_string());
-    ignores.push("*.tar.gz".to_string());
+    match File::open(".gitignore") {
+        Ok(gitignore_file) => {
+            ignores = BufReader::new(gitignore_file)
+                .lines()
+                .filter_map(|line| line.ok())
+                .filter(|line| !line.trim().is_empty())
+                .collect();
+        }
+        Err(_) => {
+            eprintln!(".gitignore not found");
+        }
+    };
+
 
     let mut path_checker = GlobSetBuilder::new();
     ignores.iter().for_each(|ignore_pattern| {
@@ -280,14 +297,34 @@ pub fn execute(server_ip: &str, server_user: &str, ssh_key: Option<String>) {
     match exec_cmd_on_server(
         &ssh_conn,
         format!(
-            "tar -xzvf /tmp/{} -C /home/{}/web",
-            build_tarball, server_user
+            "tar -xzvf /tmp/{} -C /tmp",
+            build_tarball
         )
         .as_str(),
     ) {
         Ok(status_code) => {
             if status_code > 0 {
-                eprintln!("Error. Exiting");
+                eprintln!("Error extracting build tarball. Exiting");
+                return;
+            }
+        }
+        Err(err) => {
+            eprintln!("Failed to extract deployment bundle: {}", err);
+            return;
+        }
+    }
+
+    match exec_cmd_on_server(
+        &ssh_conn,
+        format!(
+            "cp -r /tmp/{}/* /home/{}/web",
+            BUILD_ARTIFACT, server_user
+        )
+        .as_str(),
+    ) {
+        Ok(status_code) => {
+            if status_code > 0 {
+                eprintln!("Error copying file to web directory. Exiting");
                 return;
             }
         }
