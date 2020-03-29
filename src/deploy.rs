@@ -30,7 +30,13 @@ impl Error for DeployError {}
 
 impl fmt::Display for DeployError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.to_string())
+        match *self {
+            DeployError::AuthenticationFailed(ref cause) => write!(f, "{}", cause),
+            DeployError::ConnectionError(ref cause) => write!(f, "{}", cause),
+            DeployError::SessionError(ref cause) => write!(f, "{}", cause),
+            DeployError::RemoteCmdError(ref cause) => write!(f, "{}", cause),
+            DeployError::ParseError(ref cause) => write!(f, "{}", cause),
+        }
     }
 }
 
