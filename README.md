@@ -20,7 +20,7 @@ If there will be an interest, I will add a separate command for full rollback.
 9. `lint` - run different lint jobs. For a full list run with `--help`
 10. `py-test` - run pytest inside the container.
 11. `logs` - show logs for container.
-12. `sheel-plus` - useful if you have `django-extensions`, this will open python shell in provided container.
+12. `shell-plus` - useful if you have `django-extensions`, this will open python shell in provided container.
 13. `deploy` - experimental feature at this point. Simply call deploy from inside a directory ready to be packaged, uploaded to the server, that has docker-compose. 
 On server, docker-compose will be used to build the images and start the service in daemon mode.
 
