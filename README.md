@@ -56,7 +56,29 @@ will restart `web` container.
 
 # How to download the executable
 
-Once it will reach a stable version, we will setup an easy way to download the executable.
+## Mac
+
+``curl -O https://chiliseed-tools.s3.us-east-2.amazonaws.com/ddc-shob/ddc-shob-0.2.4.darwin_amd64.tar.gz``
+
+and then:
+
+``tar -xvzf ddc-shob-0.2.4.darwin_amd64.tar.gz``
+
+followed by:
+
+``mv ddc-shob /usr/local/bin/ddc-shob``
+
+## Linux
+
+``curl -O https://chiliseed-tools.s3.us-east-2.amazonaws.com/ddc-shob/ddc-shob-0.2.4.x86_64-linux.tar.gz``
+
+and then:
+
+``tar -xvzf ddc-shob-0.2.4.x86_64-linux.tar.gz``
+
+followed by:
+
+``mv ddc-shob /usr/local/bin/ddc-shob``
 
 
 # Issues and features suggestions
