@@ -30,6 +30,9 @@ struct Opt {
 enum CliCommand {
     /// Run server
     Start {
+        /// If provided, will start/build only this service
+        service_name: Option<String>,
+        /// Indicate if you want to build the images before starting up
         #[structopt(short, long)]
         build: bool,
     },
@@ -160,8 +163,11 @@ fn main() {
             utils::exec_command("docker", vec!["system", "prune"]);
         }
 
-        CliCommand::Start { build } => {
-            docker_compose::start(build);
+        CliCommand::Start {
+            service_name,
+            build,
+        } => {
+            docker_compose::start(build, service_name);
             docker_compose::logs(&opts.service, 10, false);
         }
 
