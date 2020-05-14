@@ -24,6 +24,24 @@ If there will be an interest, I will add a separate command for full rollback.
 13. `deploy` - experimental feature at this point. Simply call deploy from inside a directory ready to be packaged, uploaded to the server, that has docker-compose. 
 On server, docker-compose will be used to build the images and start the service in daemon mode.
 
+# Example usage
+
+If your `docker-compose.yml` has service named `api`, all command that target specific service, will use `api` container by default:
+
+```bash
+ddc-shob restart
+```
+
+will restart `api` container.
+
+To apply commands to different container, provide name of that container in your command:
+
+```bash
+ddc-shob web restart
+```
+
+will restart `web` container.
+
 # Supported operating systems
 
 1. Mac OS x
