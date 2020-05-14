@@ -1,18 +1,18 @@
 [package]
 name = "ddc-shob"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Chiliseed <info@chiliseed.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-flate2 = "1.0.13"
-globset = "0.3"
+flate2 = "1.0.14"
+globset = "0.4.5"
 log = "0.4.8"
-pretty_env_logger = "0.3.1"
-ssh2 = "0.8"
-structopt = { version = "0.3", default-features = false}
-tar = "0.4"
-uuid = { version = "0.8", features = ["v4"] }
+pretty_env_logger = "0.4.0"
+ssh2 = "0.8.1"
+structopt = { version = "0.3.14", default-features = false}
+tar = "0.4.26"
+uuid = { version = "0.8.1", features = ["v4"] }
 walkdir = "2.3.1"
