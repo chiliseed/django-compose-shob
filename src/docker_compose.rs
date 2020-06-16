@@ -4,16 +4,20 @@ pub const DOCKER_COMPOSE: &str = "docker-compose";
 
 /// Starts containers
 pub fn start(build: bool, container: Option<String>) -> bool {
+    debug!("container is: {:?}", container);
     if build {
-        let mut args = vec!["build", "--force-rm", "--parallel"];
+        let mut args = vec!["build", "--force-rm"];
         if let Some(service) = &container {
             args.push(service);
+        } else {
+            args.push("--parallel");
         }
         exec_command(DOCKER_COMPOSE, args);
     }
-
+    debug!("container is: {:?}", container);
     let mut args = vec!["up", "-d"];
     if let Some(service) = &container {
+        debug!("starting container");
         args.push(service);
     }
     exec_command(DOCKER_COMPOSE, args)

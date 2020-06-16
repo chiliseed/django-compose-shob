@@ -167,8 +167,13 @@ fn main() {
             service_name,
             build,
         } => {
-            docker_compose::start(build, service_name);
-            docker_compose::logs(&opts.service, 10, false);
+            docker_compose::start(build, service_name.clone());
+            let service = if let Some(service) = &service_name {
+                service
+            } else {
+                &opts.service
+            };
+            docker_compose::logs(service, 10, false);
         }
 
         CliCommand::Migrate {
@@ -192,7 +197,7 @@ fn main() {
         }
 
         CliCommand::Stop {} => {
-            docker_compose::stop(None);
+            docker_compose::stop(Some(&opts.service));
         }
 
         CliCommand::PurgeDb { db_folder, volume } => {

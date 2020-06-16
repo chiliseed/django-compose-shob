@@ -1,6 +1,6 @@
 [package]
 name = "ddc-shob"
-version = "0.2.4"
+version = "0.2.7"
 authors = ["Chiliseed <info@chiliseed.com>"]
 edition = "2018"
 
