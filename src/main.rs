@@ -45,7 +45,10 @@ enum CliCommand {
         all: bool,
     },
     /// Stop and remove all containers
-    Stop {},
+    Stop {
+        /// If provided, will stop only this service
+        service_name: Option<String>,
+    },
     /// Remove local db folder and rebuild the database
     PurgeDb {
         /// Local db folder defined via `volumes`, defaults to `pg/`
@@ -167,13 +170,7 @@ fn main() {
             service_name,
             build,
         } => {
-            docker_compose::start(build, service_name.clone());
-            let service = if let Some(service) = &service_name {
-                service
-            } else {
-                &opts.service
-            };
-            docker_compose::logs(service, 10, false);
+            docker_compose::start(build, service_name);
         }
 
         CliCommand::Migrate {
@@ -196,8 +193,8 @@ fn main() {
             docker_compose::logs(&opts.service, 10, false);
         }
 
-        CliCommand::Stop {} => {
-            docker_compose::stop(Some(&opts.service));
+        CliCommand::Stop { service_name } => {
+            docker_compose::stop(service_name);
         }
 
         CliCommand::PurgeDb { db_folder, volume } => {

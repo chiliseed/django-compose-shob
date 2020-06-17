@@ -15,7 +15,7 @@ pub fn start(build: bool, container: Option<String>) -> bool {
         exec_command(DOCKER_COMPOSE, args);
     }
     debug!("container is: {:?}", container);
-    let mut args = vec!["up", "-d"];
+    let mut args = vec!["up", "-d", "--remove-orphans"];
     if let Some(service) = &container {
         debug!("starting container");
         args.push(service);
@@ -24,10 +24,10 @@ pub fn start(build: bool, container: Option<String>) -> bool {
 }
 
 /// Stops and removes all containers
-pub fn stop(service: Option<&str>) -> bool {
+pub fn stop(service: Option<String>) -> bool {
     let mut cmd_params = vec!["rm", "--stop", "--force", "-v"];
-    if let Some(service) = service {
-        cmd_params.push(service);
+    if let Some(service_name) = &service {
+        cmd_params.push(service_name);
     }
     exec_command(DOCKER_COMPOSE, cmd_params)
 }
@@ -43,13 +43,16 @@ pub fn restart(all: bool, service: &str) -> bool {
 
 /// Rebuild specific container
 pub fn rebuild(service: &str) -> bool {
-    if !stop(Some(service)) {
+    if !stop(Some(service.to_string())) {
         return false;
     }
     if !exec_command(DOCKER_COMPOSE, vec!["build", "--force-rm", service]) {
         return false;
     }
-    exec_command(DOCKER_COMPOSE, vec!["up", "-d", service])
+    exec_command(
+        DOCKER_COMPOSE,
+        vec!["up", "-d", "--remove-orphans", service],
+    )
 }
 
 /// Show containers status
