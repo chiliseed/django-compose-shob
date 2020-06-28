@@ -19,7 +19,7 @@ struct Opt {
     /// Docker compose service to operate on
     #[structopt(default_value = "api")]
     service: String,
-    /// docker compose yml
+    /// path to docker compose yml
     #[structopt(default_value = "docker-compose.yml")]
     docker_compose_file: String,
     #[structopt(subcommand)]
