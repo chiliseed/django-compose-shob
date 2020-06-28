@@ -48,9 +48,14 @@ enum CliCommand {
         build: bool,
     },
     /// Rebuild and run service container
-    Rebuild {},
+    Rebuild {
+        /// If provided, will start/build only this service
+        service_name: Option<String>,
+    },
     /// Restart service server
     Restart {
+        /// If provided, will start/build only this service
+        service_name: Option<String>,
         /// Restart all containers
         #[structopt(long)]
         all: bool,
@@ -191,19 +196,28 @@ fn main() {
             );
         }
 
-        CliCommand::Restart { all } => {
-            docker_compose::restart(all, opts.service.as_str());
-            docker_compose::logs(&opts.service, 10, false);
+        CliCommand::Restart { service_name, all } => {
+            let service = if let Some(s) = service_name {
+                s
+            } else {
+                opts.service
+            };
+            docker_compose::restart(all, &service);
+            docker_compose::logs(&service, 10, false);
         }
 
         CliCommand::Stop { service_name } => {
             docker_compose::stop(service_name);
         }
 
-
-        CliCommand::Rebuild {} => {
-            docker_compose::rebuild(opts.service.as_str());
-            docker_compose::logs(&opts.service, 10, false);
+        CliCommand::Rebuild { service_name } => {
+            let service = if let Some(s) = service_name {
+                s
+            } else {
+                opts.service
+            };
+            docker_compose::rebuild(&service);
+            docker_compose::logs(&service, 10, false);
         }
 
         CliCommand::ShowUrls {} => {
