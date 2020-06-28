@@ -130,6 +130,20 @@ enum CliCommand {
     },
     /// Launch python shell via django-extensions shell_plus command
     ShellPlus {},
+    // #[structopt(setting = structopt::clap::AppSettings::TrailingVarArg)]
+    // ManagePy(ManagePy),
+    /// Execute `python manage.py` commands inside container
+    ManagePy {
+        #[structopt(subcommand)]
+        cmd: Option<ManagePyCommand>,
+    },
+}
+
+#[derive(Debug, StructOpt)]
+enum ManagePyCommand {
+    /// any manage.py command, i.e. createsuperuser
+    #[structopt(external_subcommand)]
+    Command(Vec<String>),
 }
 
 #[derive(Debug, StructOpt)]
@@ -174,6 +188,19 @@ fn main() {
         CliCommand::PurgeDb { db_folder, volume } => {
             django::purge_db(db_folder, volume);
         }
+
+        CliCommand::ManagePy { cmd } => match cmd {
+            Some(py_cmd) => match py_cmd {
+                ManagePyCommand::Command(manage_py_command) => {
+                    django::exec_manage_py_cmd(&opts.service, Some(manage_py_command));
+                }
+            },
+
+            None => {
+                django::exec_manage_py_cmd(&opts.service, None);
+            }
+        },
+
         CliCommand::Start {
             service_name,
             build,

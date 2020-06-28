@@ -178,3 +178,17 @@ pub fn lint(path: &str, service: &str) -> bool {
 pub fn shell_plus(service: &str) -> bool {
     exec_manage_command(service, vec!["shell_plus"])
 }
+
+/// Exec python manage.py commands inside container
+pub fn exec_manage_py_cmd(service: &str, command: Option<Vec<String>>) -> bool {
+    let mut cmd = vec!["exec", service, "python", "manage.py"];
+    if let Some(pcmd) = &command {
+        info!("executing command: {:?}", pcmd);
+        for arg in pcmd {
+            cmd.push(arg);
+        }
+    } else {
+        info!("printing all manage.py commands");
+    }
+    exec_command(DOCKER_COMPOSE, cmd)
+}
