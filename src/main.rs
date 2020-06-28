@@ -134,6 +134,9 @@ enum CliCommand {
     // ManagePy(ManagePy),
     /// Execute `python manage.py` commands inside container
     ManagePy {
+        /// DIR Path to workdir directory for this command.
+        #[structopt(long, short)]
+        workdir: Option<String>,
         #[structopt(subcommand)]
         cmd: Option<ManagePyCommand>,
     },
@@ -189,15 +192,15 @@ fn main() {
             django::purge_db(db_folder, volume);
         }
 
-        CliCommand::ManagePy { cmd } => match cmd {
+        CliCommand::ManagePy { workdir, cmd } => match cmd {
             Some(py_cmd) => match py_cmd {
                 ManagePyCommand::Command(manage_py_command) => {
-                    django::exec_manage_py_cmd(&opts.service, Some(manage_py_command));
+                    django::exec_manage_py_cmd(&opts.service, Some(manage_py_command), workdir);
                 }
             },
 
             None => {
-                django::exec_manage_py_cmd(&opts.service, None);
+                django::exec_manage_py_cmd(&opts.service, None, workdir);
             }
         },
 

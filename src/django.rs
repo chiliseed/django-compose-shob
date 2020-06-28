@@ -180,7 +180,11 @@ pub fn shell_plus(service: &str) -> bool {
 }
 
 /// Exec python manage.py commands inside container
-pub fn exec_manage_py_cmd(service: &str, command: Option<Vec<String>>) -> bool {
+pub fn exec_manage_py_cmd(
+    service: &str,
+    command: Option<Vec<String>>,
+    workdir: Option<String>,
+) -> bool {
     let mut cmd = vec!["exec", service, "python", "manage.py"];
     if let Some(pcmd) = &command {
         info!("executing command: {:?}", pcmd);
@@ -189,6 +193,11 @@ pub fn exec_manage_py_cmd(service: &str, command: Option<Vec<String>>) -> bool {
         }
     } else {
         info!("printing all manage.py commands");
+    }
+    if let Some(working_dir) = &workdir {
+        info!("command will be executed in directory: {}", working_dir);
+        cmd.insert(1, "--workdir");
+        cmd.insert(2, working_dir);
     }
     exec_command(DOCKER_COMPOSE, cmd)
 }
