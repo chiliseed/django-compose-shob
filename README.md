@@ -60,11 +60,19 @@ will restart `web` container.
 
 ## Mac
 
-``curl -O https://chiliseed-tools.s3.us-east-2.amazonaws.com/ddc-shob/ddc-shob-0.3.0.darwin_amd64.tar.gz``
+### Homebrew
+
+``brew install chiliseed/homebrew-tools/ddc-shob``
+
+### Manually
+
+Check releases for later release and then replace `X.Y.Z` with the desired release:
+
+``curl -O https://github.com/chiliseed/django-compose-shob/releases/download/0.3.0/ddc-shob-X.Y.Z.darwin_amd64.tar.gz``
 
 and then:
 
-``tar -xvzf ddc-shob-0.3.0.darwin_amd64.tar.gz``
+``tar -xvzf ddc-shob-X.Y.Z.darwin_amd64.tar.gz``
 
 followed by:
 
@@ -72,11 +80,13 @@ followed by:
 
 ## Linux
 
-``curl -O https://chiliseed-tools.s3.us-east-2.amazonaws.com/ddc-shob/ddc-shob-0.3.0.x86_64-linux.tar.gz``
+Check releases for later release and then replace `X.Y.Z` with the desired release:
+
+``curl -O https://github.com/chiliseed/django-compose-shob/releases/download/0.3.0/ddc-shob-X.Y.Z.x86_64-linux.tar.gz``
 
 and then:
 
-``tar -xvzf ddc-shob-0.3.0.x86_64-linux.tar.gz``
+``tar -xvzf ddc-shob-X.Y.Z.x86_64-linux.tar.gz``
 
 followed by:
 
