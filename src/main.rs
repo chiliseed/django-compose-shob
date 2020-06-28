@@ -28,6 +28,17 @@ struct Opt {
 
 #[derive(Debug, StructOpt)]
 enum CliCommand {
+    /// Purge docker cache & storage
+    PurgeDocker {},
+    /// Remove local db folder and rebuild the database
+    PurgeDb {
+        /// Local db folder defined via `volumes`, defaults to `pg/`
+        #[structopt(default_value = "pg")]
+        db_folder: String,
+        /// Docker volume name to which you mapped your db container
+        #[structopt(short, long)]
+        volume: Option<String>,
+    },
     /// Run server
     Start {
         /// If provided, will start/build only this service
@@ -48,15 +59,6 @@ enum CliCommand {
     Stop {
         /// If provided, will stop only this service
         service_name: Option<String>,
-    },
-    /// Remove local db folder and rebuild the database
-    PurgeDb {
-        /// Local db folder defined via `volumes`, defaults to `pg/`
-        #[structopt(default_value = "pg")]
-        db_folder: String,
-        /// Docker volume name to which you mapped your db container
-        #[structopt(short, long)]
-        volume: Option<String>,
     },
     /// Create migration and apply it to the db
     Migrate {
@@ -99,8 +101,6 @@ enum CliCommand {
     },
     /// Show services status
     Status {},
-    /// Purge docker cache & storage
-    PurgeDocker {},
     /// Gzips provided directory, uploads to remote server, builds docker images
     /// and stars docker compose with `-d`
     /// Only login with ssh key is supported at the moment
@@ -166,6 +166,9 @@ fn main() {
             utils::exec_command("docker", vec!["system", "prune"]);
         }
 
+        CliCommand::PurgeDb { db_folder, volume } => {
+            django::purge_db(db_folder, volume);
+        }
         CliCommand::Start {
             service_name,
             build,
@@ -197,9 +200,6 @@ fn main() {
             docker_compose::stop(service_name);
         }
 
-        CliCommand::PurgeDb { db_folder, volume } => {
-            django::purge_db(db_folder, volume);
-        }
 
         CliCommand::Rebuild {} => {
             docker_compose::rebuild(opts.service.as_str());
