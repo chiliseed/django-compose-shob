@@ -12,7 +12,7 @@ extern crate log;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "ddc-c2",
+    name = "ddc-shob",
     about = "Django + docker-compose cli tools to ease the life of a developer :)"
 )]
 struct Opt {
