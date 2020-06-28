@@ -21,8 +21,9 @@ If there will be an interest, I will add a separate command for full rollback.
 10. `py-test` - run pytest inside the container.
 11. `logs` - show logs for container.
 12. `shell-plus` - useful if you have `django-extensions`, this will open python shell in provided container.
-13. `deploy` - experimental feature at this point. Simply call deploy from inside a directory ready to be packaged, uploaded to the server, that has docker-compose. 
+13. `deploy` - experimental feature at this point. Simply call deploy from inside a directory ready to be tar gzip-ed and uploaded to the server, that has docker-compose. 
 On server, docker-compose will be used to build the images and start the service in daemon mode.
+14. `manage-py` - execute any `python manage.py` command inside provided service.
 
 # Example usage
 
@@ -51,18 +52,18 @@ will restart `web` container.
 
 1. Clone the repo
 2. cd to/repo
-3. `cargo install --path .`
+3. `cargo install --path . --force`
 
 
 # How to download the executable
 
 ## Mac
 
-``curl -O https://chiliseed-tools.s3.us-east-2.amazonaws.com/ddc-shob/ddc-shob-0.2.4.darwin_amd64.tar.gz``
+``curl -O https://chiliseed-tools.s3.us-east-2.amazonaws.com/ddc-shob/ddc-shob-0.3.0.darwin_amd64.tar.gz``
 
 and then:
 
-``tar -xvzf ddc-shob-0.2.4.darwin_amd64.tar.gz``
+``tar -xvzf ddc-shob-0.3.0.darwin_amd64.tar.gz``
 
 followed by:
 
@@ -70,11 +71,11 @@ followed by:
 
 ## Linux
 
-``curl -O https://chiliseed-tools.s3.us-east-2.amazonaws.com/ddc-shob/ddc-shob-0.2.4.x86_64-linux.tar.gz``
+``curl -O https://chiliseed-tools.s3.us-east-2.amazonaws.com/ddc-shob/ddc-shob-0.3.0.x86_64-linux.tar.gz``
 
 and then:
 
-``tar -xvzf ddc-shob-0.2.4.x86_64-linux.tar.gz``
+``tar -xvzf ddc-shob-0.3.0.x86_64-linux.tar.gz``
 
 followed by:
 
