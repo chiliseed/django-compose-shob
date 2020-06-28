@@ -24,6 +24,7 @@ If there will be an interest, I will add a separate command for full rollback.
 13. `deploy` - experimental feature at this point. Simply call deploy from inside a directory ready to be tar gzip-ed and uploaded to the server, that has docker-compose. 
 On server, docker-compose will be used to build the images and start the service in daemon mode.
 14. `manage-py` - execute any `python manage.py` command inside provided service.
+15. `exec` - execute arbitrary command inside provided service.
 
 # Example usage
 

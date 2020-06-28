@@ -70,3 +70,17 @@ pub fn logs(service: &str, num_lines: i32, follow: bool) -> bool {
     args.push(service);
     exec_command(DOCKER_COMPOSE, args)
 }
+
+/// Execute arbitrary command inside provided service container
+pub fn exec(service: &str, cmd_args: Vec<String>, workdir: Option<String>) -> bool {
+    let mut cmd = vec!["exec", service];
+    for arg in &cmd_args {
+        cmd.push(arg);
+    }
+    if let Some(working_dir) = &workdir {
+        info!("command will be executed in directory: {}", working_dir);
+        cmd.insert(1, "--workdir");
+        cmd.insert(2, working_dir);
+    }
+    exec_command(DOCKER_COMPOSE, cmd)
+}

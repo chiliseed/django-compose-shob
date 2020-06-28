@@ -130,8 +130,6 @@ enum CliCommand {
     },
     /// Launch python shell via django-extensions shell_plus command
     ShellPlus {},
-    // #[structopt(setting = structopt::clap::AppSettings::TrailingVarArg)]
-    // ManagePy(ManagePy),
     /// Execute `python manage.py` commands inside container
     ManagePy {
         /// DIR Path to workdir directory for this command.
@@ -140,11 +138,26 @@ enum CliCommand {
         #[structopt(subcommand)]
         cmd: Option<ManagePyCommand>,
     },
+    /// Execute arbitrary command inside container
+    Exec {
+        /// DIR Path to workdir directory for this command.
+        #[structopt(long, short)]
+        workdir: Option<String>,
+        #[structopt(subcommand)]
+        cmd: ExecCommand,
+    },
 }
 
 #[derive(Debug, StructOpt)]
 enum ManagePyCommand {
     /// any manage.py command, i.e. createsuperuser
+    #[structopt(external_subcommand)]
+    Command(Vec<String>),
+}
+
+#[derive(Debug, StructOpt)]
+enum ExecCommand {
+    /// Execute any command inside container
     #[structopt(external_subcommand)]
     Command(Vec<String>),
 }
@@ -191,6 +204,12 @@ fn main() {
         CliCommand::PurgeDb { db_folder, volume } => {
             django::purge_db(db_folder, volume);
         }
+
+        CliCommand::Exec { workdir, cmd } => match cmd {
+            ExecCommand::Command(command) => {
+                docker_compose::exec(&opts.service, command, workdir);
+            }
+        },
 
         CliCommand::ManagePy { workdir, cmd } => match cmd {
             Some(py_cmd) => match py_cmd {
