@@ -66,13 +66,15 @@ pub fn status() -> bool {
 }
 
 /// Show logs for container
-pub fn logs(service: &str, num_lines: i32, follow: bool) -> bool {
+pub fn logs(service: &str, num_lines: i32, follow: bool, all: bool) -> bool {
     let tail = format!("--tail={}", num_lines.clone());
     let mut args = vec!["logs", "--timestamps", &tail];
     if follow {
         args.push("--follow");
     }
-    args.push(service);
+    if !all {
+        args.push(service);
+    }
     exec_command(DOCKER_COMPOSE, args)
 }
 

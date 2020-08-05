@@ -1,6 +1,6 @@
 [package]
 name = "ddc-shob"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Chiliseed <info@chiliseed.com>"]
 edition = "2018"
 
@@ -16,3 +16,9 @@ structopt = { version = "0.3.15", default-features = false}
 tar = "0.4.29"
 uuid = { version = "0.8.1", features = ["v4"] }
 walkdir = "2.3.1"
+
+[profile.release]
+opt-level = 'z'  # Optimize for size.
+lto = true
+codegen-units = 1
+panic = 'abort'

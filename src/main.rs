@@ -127,11 +127,14 @@ enum CliCommand {
     /// Show logs for container
     Logs {
         /// Number of lines to show
-        #[structopt(short = "n", default_value = "10")]
+        #[structopt(short = "n", default_value = "20")]
         lines: i32,
         /// Enable live streaming of logs
-        #[structopt(short)]
+        #[structopt(short, long)]
         follow: bool,
+        /// Output all services logs
+        #[structopt(short, long)]
+        all: bool,
     },
     /// Launch python shell via django-extensions shell_plus command
     ShellPlus {},
@@ -264,7 +267,7 @@ fn main() {
         CliCommand::Restart { service_name, all } => {
             let service_to_restart = service(service_name);
             docker_compose::restart(all, &service_to_restart);
-            docker_compose::logs(&service_to_restart, 10, false);
+            docker_compose::logs(&service_to_restart, 10, false, all);
         }
 
         CliCommand::Stop { service_name } => {
@@ -274,7 +277,7 @@ fn main() {
         CliCommand::Rebuild { service_name } => {
             let service_to_rebuild = service(service_name);
             docker_compose::rebuild(&service_to_rebuild);
-            docker_compose::logs(&service_to_rebuild, 10, false);
+            docker_compose::logs(&service_to_rebuild, 10, false, false);
         }
 
         CliCommand::Build { service_name } => {
@@ -333,8 +336,8 @@ fn main() {
             deploy::execute(server_ip.as_str(), server_user.as_str(), ssh_key);
         }
 
-        CliCommand::Logs { lines, follow } => {
-            docker_compose::logs(&opts.service, lines, follow);
+        CliCommand::Logs { lines, follow, all } => {
+            docker_compose::logs(&opts.service, lines, follow, all);
         }
 
         CliCommand::ShellPlus {} => {
