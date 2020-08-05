@@ -69,7 +69,7 @@ will restart `web` container.
 
 Check releases for later release and then replace `X.Y.Z` with the desired release:
 
-``curl -O https://github.com/chiliseed/django-compose-shob/releases/download/0.3.0/ddc-shob-X.Y.Z.darwin_amd64.tar.gz``
+``curl -O https://github.com/chiliseed/django-compose-shob/releases/download/X.Y.Z/ddc-shob-X.Y.Z.darwin_amd64.tar.gz``
 
 and then:
 
@@ -83,7 +83,7 @@ followed by:
 
 Check releases for later release and then replace `X.Y.Z` with the desired release:
 
-``curl -O https://github.com/chiliseed/django-compose-shob/releases/download/0.3.0/ddc-shob-X.Y.Z.x86_64-linux.tar.gz``
+``curl -O https://github.com/chiliseed/django-compose-shob/releases/download/X.Y.Z/ddc-shob-X.Y.Z.x86_64-linux.tar.gz``
 
 and then:
 
