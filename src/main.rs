@@ -47,6 +47,11 @@ enum CliCommand {
         #[structopt(short, long)]
         build: bool,
     },
+    /// Build service container
+    Build {
+        /// Name of docker compose service to build
+        service_name: Option<String>,
+    },
     /// Rebuild and run service container
     Rebuild {
         /// If provided, will start/build only this service
@@ -196,6 +201,17 @@ fn main() {
         eprintln!("No docker compose file found. There might be errors executing commands");
     }
 
+    let service = |service| {
+        move |name: Option<String>| {
+            if let Some(s) = name {
+                s
+            } else {
+                service
+            }
+        }
+    };
+    let service = service(opts.service.clone());
+
     match opts.cmd {
         CliCommand::PurgeDocker {} => {
             utils::exec_command("docker", vec!["system", "prune"]);
@@ -246,13 +262,9 @@ fn main() {
         }
 
         CliCommand::Restart { service_name, all } => {
-            let service = if let Some(s) = service_name {
-                s
-            } else {
-                opts.service
-            };
-            docker_compose::restart(all, &service);
-            docker_compose::logs(&service, 10, false);
+            let service_to_restart = service(service_name);
+            docker_compose::restart(all, &service_to_restart);
+            docker_compose::logs(&service_to_restart, 10, false);
         }
 
         CliCommand::Stop { service_name } => {
@@ -260,13 +272,13 @@ fn main() {
         }
 
         CliCommand::Rebuild { service_name } => {
-            let service = if let Some(s) = service_name {
-                s
-            } else {
-                opts.service
-            };
-            docker_compose::rebuild(&service);
-            docker_compose::logs(&service, 10, false);
+            let service_to_rebuild = service(service_name);
+            docker_compose::rebuild(&service_to_rebuild);
+            docker_compose::logs(&service_to_rebuild, 10, false);
+        }
+
+        CliCommand::Build { service_name } => {
+            docker_compose::build(&service(service_name));
         }
 
         CliCommand::ShowUrls {} => {

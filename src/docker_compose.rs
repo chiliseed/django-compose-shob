@@ -46,13 +46,18 @@ pub fn rebuild(service: &str) -> bool {
     if !stop(Some(service.to_string())) {
         return false;
     }
-    if !exec_command(DOCKER_COMPOSE, vec!["build", "--force-rm", service]) {
+    if !build(service) {
         return false;
     }
     exec_command(
         DOCKER_COMPOSE,
         vec!["up", "-d", "--remove-orphans", service],
     )
+}
+
+/// Build specific container
+pub fn build(service: &str) -> bool {
+    exec_command(DOCKER_COMPOSE, vec!["build", "--force-rm", service])
 }
 
 /// Show containers status

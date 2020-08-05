@@ -25,6 +25,7 @@ If there will be an interest, I will add a separate command for full rollback.
 On server, docker-compose will be used to build the images and start the service in daemon mode.
 14. `manage-py` - execute any `python manage.py` command inside provided service.
 15. `exec` - execute arbitrary command inside provided service.
+16. `build` - build specific service without starting the container.
 
 # Example usage
 
