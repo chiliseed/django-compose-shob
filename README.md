@@ -81,6 +81,8 @@ followed by:
 
 ## Linux
 
+**NOTE** You might need to install ``openssl-sys`` (Debian/Ubuntu ``sudo apt-get install pkg-config libssl-dev``) 
+
 Check releases for later release and then replace `X.Y.Z` with the desired release:
 
 ``curl -O https://github.com/chiliseed/django-compose-shob/releases/download/X.Y.Z/ddc-shob-X.Y.Z.x86_64-linux.tar.gz``
