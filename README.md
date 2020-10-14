@@ -93,7 +93,7 @@ and then:
 
 followed by:
 
-``mv ddc-shob /usr/local/bin/ddc-shob``
+``mv ddc-shob /usr/local/bin``
 
 
 # Issues and features suggestions
