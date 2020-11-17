@@ -89,7 +89,7 @@ Check releases for later release and then replace `X.Y.Z` with the desired relea
 
 and then:
 
-``tar -xvzf ddc-shob-X.Y.Z.x86_64-linux.tar.gz``
+``tar xvzf ddc-shob-X.Y.Z.x86_64-linux.tar.gz``
 
 followed by:
 
