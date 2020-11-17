@@ -85,11 +85,11 @@ followed by:
 
 Check releases for later release and then replace `X.Y.Z` with the desired release:
 
-``curl -O https://github.com/chiliseed/django-compose-shob/releases/download/X.Y.Z/ddc-shob-X.Y.Z.x86_64-linux.tar.gz``
+``wget https://github.com/chiliseed/django-compose-shob/releases/download/X.Y.Z/ddc-shob-X.Y.Z.x86_64-linux.tar.gz``
 
 and then:
 
-``tar xvzf ddc-shob-X.Y.Z.x86_64-linux.tar.gz``
+``tar -xvzf ddc-shob-X.Y.Z.x86_64-linux.tar.gz``
 
 followed by:
 
