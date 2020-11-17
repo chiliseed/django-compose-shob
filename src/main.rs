@@ -7,6 +7,7 @@ use std::env;
 use std::path::Path;
 
 use structopt::StructOpt;
+
 #[macro_use]
 extern crate log;
 
@@ -173,7 +174,10 @@ enum ExecCommand {
 #[derive(Debug, StructOpt)]
 enum LintCommands {
     /// Run black formatter
-    Black {},
+    Black {
+        /// Optional path for specific file/module to be formatted
+        custom_path: Option<String>,
+    },
     /// Run prospector checks
     Prospector {},
     /// Run flake8 checks with minimal python version of 3.7.0
@@ -298,8 +302,12 @@ fn main() {
 
         CliCommand::Lint { cmd, path } => match cmd {
             Some(lint_job) => match lint_job {
-                LintCommands::Black {} => {
-                    django::black(path.as_str(), opts.service.as_str());
+                LintCommands::Black { custom_path } => {
+                    if let Some(p) = custom_path {
+                        django::black(p.as_str(), opts.service.as_str());
+                    } else {
+                        django::black(path.as_str(), opts.service.as_str());
+                    }
                 }
 
                 LintCommands::Flake8 {} => {
