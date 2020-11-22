@@ -1,5 +1,5 @@
 # django-compose-shob (ddc-shob)
-Command line utility to simplify developers life. Short and precise cli commands to interact with django (or other python) server running in docker container via docker compose.
+Command line utility to simplify developer's life. Short and precise cli commands to interact with django (or other python) server running in docker container via docker compose.
 
 
 # What's included
